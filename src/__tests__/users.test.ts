@@ -17,7 +17,7 @@ describe('user tests', () => {
     });
 
     afterAll(async () => {
-        await mongoose.disconnect();
+        return mongoose.disconnect();
     })
 
     it('it inserts a user', () => {
