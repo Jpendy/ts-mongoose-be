@@ -17,6 +17,7 @@ describe('user tests', () => {
     });
 
     afterAll(async () => {
+        await mongod.stop()
         return mongoose.disconnect();
     })
 
