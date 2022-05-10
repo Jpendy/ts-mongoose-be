@@ -5,9 +5,10 @@ const jwt = require('jsonwebtoken');
 export interface IUser {
     email: string;
     passwordHash: string;
-    authToken(): string;
+    createAuthToken(): string;
 }
 
+// Static methods are type defined here
 interface UserModel extends Model<IUser> {
     verifyToken(token: string): IUser;
     authorize({ email, password }: { email: string, password: string }): Promise<IUser>;
@@ -38,7 +39,13 @@ userSchema.virtual('password').set(function (password) {
     this.passwordHash = bcrypt.hashSync(password, +process.env.SALT_ROUNDS! || 8);
 });
 
-userSchema.static('authorize', function authorize({ email, password }): Promise<IUser> {
+userSchema.static('authorize', function authorize({
+    email,
+    password
+}: {
+    email: string;
+    password: string
+}): Promise<IUser> {
     return this.findOne({ email })
         .then((user: IUser | null) => {
             if (!user) {
@@ -51,12 +58,12 @@ userSchema.static('authorize', function authorize({ email, password }): Promise<
         });
 });
 
-userSchema.static('verifyToken', function verifyToken(token) {
+userSchema.static('verifyToken', function verifyToken(token: string): IUser {
     const { sub } = jwt.verify(token, process.env.APP_SECRET);
     return this.hydrate(sub);
 });
 
-userSchema.method('authToken', function authToken() {
+userSchema.method('createAuthToken', function createAuthToken(): string {
     return jwt.sign({ sub: this.toJSON() }, process.env.APP_SECRET, {
         expiresIn: '48h'
     });

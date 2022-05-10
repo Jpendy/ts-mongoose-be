@@ -5,7 +5,7 @@ import User, { IUser } from "../models/User";
 const ONE_DAY = 1000 * 60 * 60 * 24;
 
 const setCookie = (res: Response, user: IUser) => {
-    res.cookie('session', user.authToken(), {
+    res.cookie('session', user.createAuthToken(), {
         httpOnly: true,
         maxAge: ONE_DAY,
         sameSite: 'none',
