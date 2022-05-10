@@ -1,28 +1,36 @@
 import request from 'supertest';
-import setupDB from '../data/setup';
 import app from '../lib/app';
-import pool from '../lib/utils/pool';
+import { MongoMemoryServer } from 'mongodb-memory-server';
+import mongoose from 'mongoose';
+import connect from '../lib/utils/connect';
 
 describe('user tests', () => {
-
-    beforeEach(() => {
-        return setupDB();
+    let mongod: any;
+    beforeAll(async () => {
+        mongod = await MongoMemoryServer.create();
+        const uri = mongod.getUri();
+        return connect(uri);
     });
 
-    afterAll(() => {
-        pool.end()
+    beforeEach(() => {
+        return mongoose.connection.dropDatabase();
+    });
+
+    afterAll(async () => {
+        await mongod.stop()
+        return mongoose.disconnect();
     })
 
     it('it inserts a user', () => {
         return request(app)
-            .post('/api/v1/users/signup')
+            .post('/api/v1/auth/signup')
             .send({
                 email: 'test@test.com',
                 password: 'test'
             })
-            .then(res => {
+            .then((res) => {
                 expect(res.body).toEqual({
-                    id: '1',
+                    _id: expect.any(String),
                     email: 'test@test.com',
                 })
             })

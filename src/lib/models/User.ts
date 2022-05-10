@@ -1,42 +1,65 @@
-import pool from '../utils/pool';
+import { model, Schema, Model } from "mongoose";
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
 
-class User {
-    id?: string;
+export interface IUser {
     email: string;
-    password_hash?: string;
-
-    constructor(row: User) {
-        this.id = row.id;
-        this.email = row.email;
-        this.password_hash = row.password_hash;
-    }
-
-    static async insert({ email, password_hash }: User): Promise<User> {
-        const { rows } = await pool.query(`
-            INSERT INTO users (email, password_hash) 
-            VALUES ($1, $2)
-            RETURNING *;
-        `, [email, password_hash])
-
-        return new User(rows[0])
-    }
-
-    static async findById(id: string): Promise<User> {
-        const { rows } = await pool.query(`
-        SELECT * FROM users WHERE id = $1;
-        `, [id])
-        if (!rows[0]) throw new Error(`No user with id ${id} found`)
-        return new User(rows[0])
-    }
-
-    static async findByEmail(email: string): Promise<User> {
-        const { rows } = await pool.query(`
-        SELECT * FROM users WHERE email = $1;
-        `, [email])
-
-        if (!rows[0]) throw new Error(`No user with email ${email} found`)
-        return new User(rows[0])
-    }
+    passwordHash: string;
+    authToken(): string;
 }
 
-export default User;
+interface UserModel extends Model<IUser> {
+    verifyToken(token: string): IUser;
+    authorize({ email, password }: { email: string, password: string }): Promise<IUser>;
+}
+
+const userSchema = new Schema<IUser, UserModel>({
+    email: {
+        type: String,
+        required: true,
+        unique: true
+    },
+
+    passwordHash: {
+        type: String,
+        required: true
+    },
+}, {
+    toJSON: {
+        transform: (doc, ret) => {
+            delete ret.passwordHash,
+                delete ret.__v,
+                delete ret.id;
+        }
+    }
+});
+
+userSchema.virtual('password').set(function (password) {
+    this.passwordHash = bcrypt.hashSync(password, +process.env.SALT_ROUNDS! || 8);
+});
+
+userSchema.static('authorize', function authorize({ email, password }): Promise<IUser> {
+    return this.findOne({ email })
+        .then((user: IUser | null) => {
+            if (!user) {
+                throw new Error('Wrong Email/Password');
+            }
+            if (!bcrypt.compareSync(password, user.passwordHash)) {
+                throw new Error('Wrong Email/Password');
+            }
+            return user;
+        });
+});
+
+userSchema.static('verifyToken', function verifyToken(token) {
+    const { sub } = jwt.verify(token, process.env.APP_SECRET);
+    return this.hydrate(sub);
+});
+
+userSchema.method('authToken', function authToken() {
+    return jwt.sign({ sub: this.toJSON() }, process.env.APP_SECRET, {
+        expiresIn: '48h'
+    });
+});
+
+export default model<IUser, UserModel>('User', userSchema)

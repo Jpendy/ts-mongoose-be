@@ -4,9 +4,8 @@
   "description": "",
   "main": "dist/server.js",
   "scripts": {
-    "test": "jest --verbose --runInBand --testLocationInResults --setupFiles dotenv/config",
+    "test": "jest --verbose --runInBand --testLocationInResults --detectOpenHandles --setupFiles dotenv/config",
     "test:watch": "npm run test -- --watch",
-    "seed-db": "ts-node -r dotenv/config src/setup-db.ts",
     "build": "tsc",
     "start": "ts-node -r dotenv/config --files src/server.ts",
     "start:watch": "nodemon -r dotenv/config --files src/server.ts"
@@ -29,14 +28,14 @@
     "@types/express": "^4.17.13",
     "@types/jsonwebtoken": "^8.5.8",
     "@types/node": "^17.0.31",
-    "@types/pg": "^8.6.5",
     "bcryptjs": "^2.4.3",
     "cookie-parser": "^1.4.6",
     "cors": "^2.8.5",
     "dotenv": "^16.0.0",
     "express": "^4.18.1",
     "jsonwebtoken": "^8.5.1",
-    "pg": "^8.7.3",
+    "mongodb-memory-server": "^8.5.2",
+    "mongoose": "^6.3.3",
     "ts-node": "^10.7.0",
     "typescript": "^4.6.4"
   },
